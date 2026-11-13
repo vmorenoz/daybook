@@ -6,17 +6,14 @@ Permite organizar planes, fases y tareas, registrar avances y decisiones, consul
 
 ## Instalación
 
-Necesitas **Node.js 24 o posterior**, npm y acceso al registro de npm para descargar dependencias. Como todavía no hay una versión publicada, crea el paquete desde el código:
+Necesitas **Node.js 24 o posterior**, npm y acceso al registro de npm para descargar dependencias. Descarga el archivo `vmorenoz-daybook-<versión>.tgz` de la versión que quieras desde la [página de releases](https://github.com/vmorenoz/daybook/releases), no los archivos de código fuente que GitHub genera automáticamente. En una terminal, indica la ruta al archivo descargado e instálalo:
 
 ```sh
-git clone https://github.com/vmorenoz/daybook.git
-cd daybook
-npm ci --ignore-scripts
-npm run pack
-npm install -g ./releases/vmorenoz-daybook-1.0.0.tgz --foreground-scripts
+PAQUETE="$HOME/Downloads/vmorenoz-daybook-<versión>.tgz"
+npm install -g "$PAQUETE" --foreground-scripts
 ```
 
-El nombre del archivo contiene la versión del código; si cambia, usa el `.tgz` generado en `releases/`. No ejecutes la instalación con `sudo`.
+Sustituye la ruta de ejemplo por la ruta y el nombre reales del archivo descargado; la variable `PAQUETE` se usa también en el ejemplo sin terminal interactiva. No ejecutes la instalación con `sudo`.
 
 Durante la instalación, selecciona con las flechas y la barra espaciadora los clientes que quieras conectar: **OpenCode, Codex, Antigravity o Claude Code**. Pulsa Enter para confirmar; sin selección se cancela la configuración. El instalador registra el servidor MCP y una instrucción global para los clientes seleccionados. No instala un comando global ni una skill. Los clientes arrancan el servidor automáticamente y pueden pedir permisos o confirmación.
 
@@ -36,10 +33,23 @@ Si están definidas, `XDG_CONFIG_HOME` sustituye a `~/.config` para OpenCode; `C
 Sin terminal interactiva, el instalador no cambia la configuración salvo que se indiquen clientes y confirmación explícitos:
 
 ```sh
-DAYBOOK_INSTALL_CLIENTS=opencode,codex DAYBOOK_INSTALL_CONFIRM=1 npm install -g ./releases/vmorenoz-daybook-1.0.0.tgz --foreground-scripts
+DAYBOOK_INSTALL_CLIENTS=opencode,codex DAYBOOK_INSTALL_CONFIRM=1 npm install -g "$PAQUETE" --foreground-scripts
 ```
 
 También se admiten `antigravity` y `claude-code` en la lista. Usa `DAYBOOK_SKIP_SETUP=1` para instalar sin configurar clientes. Si se omite la configuración, habrá que reinstalar con ella habilitada o configurar el cliente manualmente.
+
+### Crear el paquete desde el código fuente
+
+Como alternativa a la descarga, puedes generar el paquete localmente:
+
+```sh
+git clone https://github.com/vmorenoz/daybook.git
+cd daybook
+npm ci --ignore-scripts
+npm run pack
+```
+
+Después, asigna a `PAQUETE` la ruta del archivo `vmorenoz-daybook-<versión>.tgz` generado en `releases/` e instálalo como se indica arriba.
 
 ### Actualización desde un paquete anterior
 
