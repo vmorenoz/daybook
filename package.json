@@ -1,6 +1,6 @@
 {
-  "name": "alba-daybook",
-  "version": "0.1.0",
+  "name": "@vicodev/daybook",
+  "version": "1.0.0",
   "author": "Victor Moreno",
   "license": "MIT",
   "repository": {

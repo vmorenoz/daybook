@@ -208,7 +208,7 @@ test('migra el bloque de instrucciones anterior sin duplicar identidades ni camb
 test('OpenCode migra una instalación anterior y su referencia sin borrar el archivo de instrucciones', t => {
   const options = sandbox(t);
   const client = getClients(options).find(client => client.id === 'opencode');
-  const runtime = { nodePath: join(options.home, 'node'), serverPath: join(options.home, 'node_modules', 'alba-daybook', 'dist', 'mcp.js'), dataHome: join(options.home, 'data'), instructions: 'Use daybook.' };
+  const runtime = { nodePath: join(options.home, 'node'), serverPath: join(options.home, 'node_modules', '@vicodev', 'daybook', 'dist', 'mcp.js'), dataHome: join(options.home, 'data'), instructions: 'Use daybook.' };
   const previous = join(dirname(client.instructionsPath), 'vimo-cortex.md');
   mkdirSync(dirname(previous), { recursive: true });
   const oldInstructions = '<!-- vimo-cortex:start -->\nOld managed guidance.\n<!-- vimo-cortex:end -->\n';
@@ -222,4 +222,28 @@ test('OpenCode migra una instalación anterior y su referencia sin borrar el arc
   assert.equal(readFileSync(previous, 'utf8'), oldInstructions);
   assert.match(readFileSync(client.instructionsPath, 'utf8'), /Use daybook/);
   assert.equal(planRegistration(client, runtime).changed, false);
+});
+
+test('updates previous alba-daybook runtime to scoped package while preserving other settings', t => {
+  const options = sandbox(t);
+  const oldPath = join(options.home, 'node_modules', 'alba-daybook', 'dist', 'mcp.js');
+  const runtime = { nodePath: join(options.home, 'node'), serverPath: join(options.home, 'node_modules', '@vicodev', 'daybook', 'dist', 'mcp.js'), dataHome: join(options.home, 'data') };
+  for (const client of getClients(options)) {
+    mkdirSync(dirname(client.path), { recursive: true });
+    const old = client.id === 'opencode'
+      ? { type: 'local', command: [runtime.nodePath, oldPath], environment: { DAYBOOK_HOME: runtime.dataHome } }
+      : { command: runtime.nodePath, args: [oldPath], env: { DAYBOOK_HOME: runtime.dataHome } };
+    const initial = client.format === 'toml'
+      ? `model = "keep"\n[mcp_servers.daybook]\ncommand = ${JSON.stringify(runtime.nodePath)}\nargs = [${JSON.stringify(oldPath)}]\n[mcp_servers.daybook.env]\nDAYBOOK_HOME = ${JSON.stringify(runtime.dataHome)}\n[mcp_servers.other]\ncommand = "keep"\n`
+      : JSON.stringify({ setting: 'keep', ...(client.id === 'opencode' ? { mcp: { servers: { daybook: old, other: { command: 'keep' } } } } : { mcpServers: { daybook: old, other: { command: 'keep' } } }) });
+    writeFileSync(client.path, initial);
+    applyRegistration(planRegistration(client, runtime));
+    const parsed = client.format === 'toml' ? parseToml(readFileSync(client.path, 'utf8')) : JSON.parse(readFileSync(client.path, 'utf8'));
+    const servers = client.id === 'codex' ? parsed.mcp_servers : client.id === 'opencode' ? parsed.mcp.servers : parsed.mcpServers;
+    assert.equal(client.id === 'opencode' ? servers.daybook.command[1] : servers.daybook.args[0], runtime.serverPath);
+    assert.equal((servers.daybook.env || servers.daybook.environment).DAYBOOK_HOME, runtime.dataHome);
+    assert.equal(servers.other.command, 'keep');
+    assert.equal(client.id === 'codex' ? parsed.model : parsed.setting, 'keep');
+    assert.equal(planRegistration(client, runtime).changed, false);
+  }
 });

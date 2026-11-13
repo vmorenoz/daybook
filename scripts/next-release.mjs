@@ -8,7 +8,7 @@ for (const tag of versions) {
   if (!/^v1\.0\.(0|[1-9]\d*)$/.test(tag)) throw new Error(`Unexpected stable tag: ${tag}`);
   const release = releases.find((item) => item.tag_name === tag);
   if (!release || release.draft || release.prerelease ||
-      !release.assets.some((asset) => asset.name === `alba-daybook-${tag.slice(1)}.tgz` && asset.state === 'uploaded')) {
+      !release.assets.some((asset) => asset.name === `vicodev-daybook-${tag.slice(1)}.tgz` && asset.state === 'uploaded')) {
     throw new Error(`Incomplete release for ${tag}; resolve it manually before retrying.`);
   }
 }
