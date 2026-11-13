@@ -5,8 +5,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vmorenoz/vimo.git",
-    "directory": "daybook"
+    "url": "git+https://github.com/vmorenoz/daybook.git"
   },
   "private": true,
   "description": "Persistent project and work context for agents, with local SQLite and MCP",

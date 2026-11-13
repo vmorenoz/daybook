@@ -6,10 +6,10 @@ Independent local utility: TypeScript, Node.js 24+, built-in SQLite, and MCP ove
 
 ### Install globally from a tarball
 
-With Node.js 24 or newer and npm:
+With Node.js 24 or newer and npm, download `alba-daybook-<version>.tgz` from the [GitHub releases](https://github.com/vmorenoz/daybook/releases), then install it from the download directory (replace the example version with the downloaded version):
 
 ```sh
-npm install -g ./alba-daybook-0.1.0.tgz --foreground-scripts
+npm install -g ./alba-daybook-1.0.0.tgz --foreground-scripts
 ```
 
 Select **OpenCode, Codex, Antigravity, and Claude Code** using the arrow keys, space to select, and Enter to confirm. Enter with no selection cancels setup. There is no second form or verbose path listing.
@@ -20,7 +20,7 @@ If OpenCode has both `opencode.json` and `opencode.jsonc`, setup registers the s
 
 The tarball contains the compiled server and installer; npm downloads dependencies during installation. No extraction, repository clone, or TypeScript installation is needed. Data remains separate from the installation in `DAYBOOK_HOME`, falling back to `BITACORA_HOME` or `~/.local/share/bitacora` for compatibility.
 
-The package name is `alba-daybook` and the MCP server ID is `daybook`; source code lives in `daybook/`. `DAYBOOK_HOME` and `DAYBOOK_INSTALL_*` are the current environment variables; existing `BITACORA_*` variables remain fallback aliases. The existing data directory and `bitacora.sqlite` filename are retained for compatibility. Setup migrates old `bitacora`, `vimo-contex`, `vimo-cortex` and `alba-cortex` registrations only when it recognizes the previous runtime and the same data location; unrelated connections are preserved. No data is moved or copied. `Daybook` is the current library export; old `AlbaCortex`, `VimoCortex` and `VimoContex` aliases remain available for existing consumers. The GitHub repository URL still points to the actual existing repository until it is renamed separately.
+The package name is `alba-daybook` and the MCP server ID is `daybook`. `DAYBOOK_HOME` and `DAYBOOK_INSTALL_*` are the current environment variables; existing `BITACORA_*` variables remain fallback aliases. The existing data directory and `bitacora.sqlite` filename are retained for compatibility. Setup migrates old `bitacora`, `vimo-contex`, `vimo-cortex` and `alba-cortex` registrations only when it recognizes the previous runtime and the same data location; unrelated connections are preserved. No data is moved or copied. `Daybook` is the current library export; old `AlbaCortex`, `VimoCortex` and `VimoContex` aliases remain available for existing consumers.
 
 ### Global instruction
 
@@ -50,13 +50,20 @@ npm ci --ignore-scripts
 npm run pack
 ```
 
-The output is `releases/alba-daybook-0.1.0.tgz`. Use `--ignore-scripts` when preparing source code if you do not want setup to run. Without an interactive terminal, setup does not modify configurations automatically.
+The output is `releases/alba-daybook-<source-version>.tgz`, using the version in the source checkout. Use `--ignore-scripts` when preparing source code if you do not want setup to run. Without an interactive terminal, setup does not modify configurations automatically.
+
+### Publishing releases
+
+Users with permission to run workflows can dispatch Release, but its jobs run only for `vmorenoz` on `main` (including on reruns). It tests the selected commit, assigns `1.0.0` to the first release and increments the patch thereafter, then checks the built tarball by installing it in an isolated temporary prefix with setup disabled. The tarball package version, asset filename and `v`-prefixed tag agree. The version is injected during the build; the checked-in source version is not changed by the workflow. The tag points to the tested source commit.
+
+The workflow serializes its own runs and does not overwrite tags or assets. If a tag was created but publication failed, or a draft or incomplete release remains, inspect and resolve it manually before retrying; the workflow deliberately stops instead of skipping it. A retry after a successful release creates the next patch release. The repository must allow the workflow token to write contents; no extra secret is required.
 
 For unattended setup, set `DAYBOOK_INSTALL_CLIENTS=opencode,codex,antigravity,claude-code` and `DAYBOOK_INSTALL_CONFIRM=1` when running npm. `DAYBOOK_SKIP_SETUP=1` skips registration. The previous `BITACORA_*` flags are still accepted, with `DAYBOOK_*` values taking precedence. Do not use `sudo`: setup avoids configuring another user's account. Invalid files and direct symbolic links are rejected rather than overwritten.
 
 ### Run from source
 
 ```sh
+git clone https://github.com/vmorenoz/daybook.git
 cd daybook
 npm ci --ignore-scripts
 npm run build
@@ -66,7 +73,7 @@ npm start
 The process waits for an MCP client; it is not an interactive console. Configure a compatible client with:
 
 - Executable: absolute path to Node.js 24 or newer.
-- Arguments: `["/absolute/path/to/alba/daybook/dist/mcp.js"]`.
+- Arguments: `["/absolute/path/to/daybook/dist/mcp.js"]`.
 - Optional `DAYBOOK_HOME`: absolute data directory.
 
 Replace the example paths if you move the module to another location or machine.
