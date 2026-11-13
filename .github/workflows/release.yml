@@ -27,31 +27,43 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24'
+      - name: Create isolated build directories
+        id: dirs
+        run: |
+          set -euo pipefail
+          build=$(mktemp -d "$RUNNER_TEMP/daybook-build.XXXXXXXXXX")
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          artifacts=$(mktemp -d "$RUNNER_TEMP/daybook-artifacts.XXXXXXXXXX")
+          echo "artifacts=$artifacts" >> "$GITHUB_OUTPUT"
+          git archive HEAD | tar -x -C "$build"
+          ln -s "$artifacts" "$build/releases"
       - name: Determine next version
         id: version
+        working-directory: ${{ steps.dirs.outputs.build }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/tags?per_page=100" > "$RUNNER_TEMP/tags.json"
-          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" > "$RUNNER_TEMP/releases.json"
-          version=$(node scripts/next-release.mjs "$RUNNER_TEMP/tags.json" "$RUNNER_TEMP/releases.json")
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/tags?per_page=100" > tags.json
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" > releases.json
+          version=$(node scripts/next-release.mjs tags.json releases.json)
           echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Install dependencies and test
+        working-directory: ${{ steps.dirs.outputs.build }}
         run: |
           npm ci --ignore-scripts
           npm test
       - name: Build and verify installable tarball
+        working-directory: ${{ steps.dirs.outputs.build }}
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-          npm version "$VERSION" --no-git-tag-version --ignore-scripts
+          npm version "$VERSION" --allow-same-version --no-git-tag-version --ignore-scripts
           npm run pack
-          tarball="$GITHUB_WORKSPACE/releases/vmorenoz-daybook-$VERSION.tgz"
+          tarball="${{ steps.dirs.outputs.artifacts }}/vmorenoz-daybook-$VERSION.tgz"
           test -f "$tarball"
-          sandbox=$(mktemp -d "$RUNNER_TEMP/daybook-install.XXXXXX")
-          trap 'rm -rf "$sandbox"' EXIT
+          sandbox=$(mktemp -d "$PWD/daybook-install.XXXXXX")
           HOME="$sandbox" XDG_CONFIG_HOME="$sandbox/config" DAYBOOK_SKIP_SETUP=1 \
             npm install --global --prefix "$sandbox/prefix" --foreground-scripts "$tarball"
           PACKAGE_DIR="$sandbox/prefix/lib/node_modules/@vmorenoz/daybook" EXPECTED_VERSION="$VERSION" node --input-type=module <<'NODE'
@@ -66,6 +78,7 @@ jobs:
           NODE
       - name: Calculate tarball digest
         id: digest
+        working-directory: ${{ steps.dirs.outputs.build }}
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: echo "sha256=$(sha256sum "releases/vmorenoz-daybook-$VERSION.tgz" | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
@@ -74,9 +87,30 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: daybook-${{ github.run_id }}-${{ github.run_attempt }}
-          path: releases/vmorenoz-daybook-${{ steps.version.outputs.version }}.tgz
+          path: ${{ steps.dirs.outputs.artifacts }}/vmorenoz-daybook-${{ steps.version.outputs.version }}.tgz
           if-no-files-found: error
           retention-days: 1
+      - name: Clean isolated build files
+        if: always()
+        env:
+          BUILD_DIR: ${{ steps.dirs.outputs.build }}
+        run: |
+          set -euo pipefail
+          # Only the mktemp-created direct child is ours; the artifact directory is separate.
+          [[ -z "$BUILD_DIR" ]] && exit 0
+          [[ "$(dirname -- "$BUILD_DIR")" == "$RUNNER_TEMP" && "$(basename -- "$BUILD_DIR")" =~ ^daybook-build\.[a-zA-Z0-9]{10}$ ]] || { echo 'Refusing unexpected build directory' >&2; exit 1; }
+          test ! -L "$BUILD_DIR"
+          rm -rf -- "$BUILD_DIR"
+      - name: Clean transferred build artifact
+        if: always()
+        env:
+          ARTIFACT_DIR: ${{ steps.dirs.outputs.artifacts }}
+        run: |
+          set -euo pipefail
+          [[ -z "$ARTIFACT_DIR" ]] && exit 0
+          [[ "$(dirname -- "$ARTIFACT_DIR")" == "$RUNNER_TEMP" && "$(basename -- "$ARTIFACT_DIR")" =~ ^daybook-artifacts\.[a-zA-Z0-9]{10}$ ]] || { echo 'Refusing unexpected artifact directory' >&2; exit 1; }
+          test ! -L "$ARTIFACT_DIR"
+          rm -rf -- "$ARTIFACT_DIR"
 
   publish:
     needs: build
@@ -85,35 +119,41 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Create isolated validation directory
+        id: temp
+        run: |
+          dir=$(mktemp -d "$RUNNER_TEMP/daybook-validate.XXXXXXXXXX")
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
       - name: Download build artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           artifact-ids: ${{ needs.build.outputs.artifact_id }}
           merge-multiple: true
-          path: release-artifact
+          path: ${{ steps.temp.outputs.dir }}/release-artifact
       - name: Validate artifact and release sequence
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.build.outputs.version }}
           EXPECTED_SHA256: ${{ needs.build.outputs.sha256 }}
+          VALIDATE_DIR: ${{ steps.temp.outputs.dir }}
         run: |
           set -euo pipefail
           [[ "$VERSION" =~ ^1\.0\.(0|[1-9][0-9]*)$ ]]
           [[ "$EXPECTED_SHA256" =~ ^[0-9a-f]{64}$ ]]
-          tarball="release-artifact/vmorenoz-daybook-$VERSION.tgz"
-          test "$(find release-artifact -type f | wc -l)" -eq 1
+          tarball="$VALIDATE_DIR/release-artifact/vmorenoz-daybook-$VERSION.tgz"
+          test "$(find "$VALIDATE_DIR/release-artifact" -type f | wc -l)" -eq 1
           test -f "$tarball" && test ! -L "$tarball"
           test "$(stat -c %s "$tarball")" -le 10485760
           echo "$EXPECTED_SHA256  $tarball" | sha256sum --check --status
           test "$(tar -tzf "$tarball" | grep -cx 'package/package.json')" -eq 1
-          tar -xOzf "$tarball" package/package.json | head -c 65537 > "$RUNNER_TEMP/package.json"
-          test "$(stat -c %s "$RUNNER_TEMP/package.json")" -le 65536
-          node -e 'const p=require(process.argv[1]); if (p.name !== "@vmorenoz/daybook" || p.version !== process.env.VERSION) process.exit(1)' "$RUNNER_TEMP/package.json"
-          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/tags?per_page=100" > "$RUNNER_TEMP/tags.json"
-          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" > "$RUNNER_TEMP/releases.json"
+          tar -xOzf "$tarball" package/package.json | head -c 65537 > "$VALIDATE_DIR/package.json"
+          test "$(stat -c %s "$VALIDATE_DIR/package.json")" -le 65536
+          node -e 'const p=require(process.argv[1]); if (p.name !== "@vmorenoz/daybook" || p.version !== process.env.VERSION) process.exit(1)' "$VALIDATE_DIR/package.json"
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/tags?per_page=100" > "$VALIDATE_DIR/tags.json"
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" > "$VALIDATE_DIR/releases.json"
           node --input-type=module <<'NODE'
           import { readFile } from 'node:fs/promises';
-          const read = async (name) => JSON.parse(await readFile(`${process.env.RUNNER_TEMP}/${name}.json`, 'utf8')).flat();
+          const read = async (name) => JSON.parse(await readFile(`${process.env.VALIDATE_DIR}/${name}.json`, 'utf8')).flat();
           const tags = (await read('tags')).map(({ name }) => name).filter((name) => /^v\d+\.\d+\.\d+$/.test(name));
           const releases = await read('releases');
           for (const tag of tags) {
@@ -132,6 +172,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.build.outputs.version }}
+          VALIDATE_DIR: ${{ steps.temp.outputs.dir }}
         run: |
           set -euo pipefail
           tag="v$VERSION"
@@ -139,5 +180,15 @@ jobs:
           test "$head" = "$GITHUB_SHA" || { echo 'main moved; dispatch again from its current head' >&2; exit 1; }
           # Creating the ref is atomic and fails on collision; never force or overwrite.
           gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/$tag" -f "sha=$GITHUB_SHA" > /dev/null
-          gh release create "$tag" "release-artifact/vmorenoz-daybook-$VERSION.tgz" --verify-tag --draft --title "$tag" --generate-notes
+          gh release create "$tag" "$VALIDATE_DIR/release-artifact/vmorenoz-daybook-$VERSION.tgz" --verify-tag --draft --title "$tag" --generate-notes
           gh release edit "$tag" --draft=false
+      - name: Clean validation files
+        if: always()
+        env:
+          VALIDATE_DIR: ${{ steps.temp.outputs.dir }}
+        run: |
+          set -euo pipefail
+          [[ -z "$VALIDATE_DIR" ]] && exit 0
+          [[ "$(dirname -- "$VALIDATE_DIR")" == "$RUNNER_TEMP" && "$(basename -- "$VALIDATE_DIR")" =~ ^daybook-validate\.[a-zA-Z0-9]{10}$ ]] || { echo 'Refusing unexpected validation directory' >&2; exit 1; }
+          test ! -L "$VALIDATE_DIR"
+          rm -rf -- "$VALIDATE_DIR"
