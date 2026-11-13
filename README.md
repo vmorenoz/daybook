@@ -6,10 +6,10 @@ Independent local utility: TypeScript, Node.js 24+, built-in SQLite, and MCP ove
 
 ### Install globally from a tarball
 
-With Node.js 24 or newer and npm, download `vicodev-daybook-<version>.tgz` from the [GitHub releases](https://github.com/vmorenoz/daybook/releases), then install it from the download directory (replace the example version with the downloaded version):
+With Node.js 24 or newer and npm, download `vmorenoz-daybook-<version>.tgz` from the [GitHub releases](https://github.com/vmorenoz/daybook/releases), then install it from the download directory (replace the example version with the downloaded version):
 
 ```sh
-npm install -g ./vicodev-daybook-1.0.0.tgz --foreground-scripts
+npm install -g ./vmorenoz-daybook-1.0.0.tgz --foreground-scripts
 ```
 
 Select **OpenCode, Codex, Antigravity, and Claude Code** using the arrow keys, space to select, and Enter to confirm. Enter with no selection cancels setup. There is no second form or verbose path listing.
@@ -20,11 +20,11 @@ If OpenCode has both `opencode.json` and `opencode.jsonc`, setup registers the s
 
 The tarball contains the compiled server and installer; npm downloads dependencies during installation. No extraction, repository clone, or TypeScript installation is needed. Data remains separate from the installation in `DAYBOOK_HOME`, falling back to `BITACORA_HOME` or `~/.local/share/bitacora` for compatibility.
 
-The package name is `@vicodev/daybook` and the MCP server ID is `daybook`. `DAYBOOK_HOME` and `DAYBOOK_INSTALL_*` are the current environment variables; existing `BITACORA_*` variables remain fallback aliases. The existing data directory and `bitacora.sqlite` filename are retained for compatibility. Setup migrates old `bitacora`, `vimo-contex`, `vimo-cortex` and `alba-cortex` registrations only when it recognizes the previous runtime and the same data location; unrelated connections are preserved. No data is moved or copied. `Daybook` is the current library export; old `AlbaCortex`, `VimoCortex` and `VimoContex` aliases remain available for existing consumers.
+The package name is `@vmorenoz/daybook` and the MCP server ID is `daybook`. `DAYBOOK_HOME` and `DAYBOOK_INSTALL_*` are the current environment variables; existing `BITACORA_*` variables remain fallback aliases. The existing data directory and `bitacora.sqlite` filename are retained for compatibility. Setup migrates old `bitacora`, `vimo-contex`, `vimo-cortex` and `alba-cortex` registrations only when it recognizes the previous runtime and the same data location; unrelated connections are preserved. No data is moved or copied. `Daybook` is the current library export; old `AlbaCortex`, `VimoCortex` and `VimoContex` aliases remain available for existing consumers.
 
 ### Upgrading an older installation
 
-Installing the scoped tarball does not replace the separately named `alba-daybook` package. Install the new tarball with setup enabled and select the same clients to update their `daybook` runtime paths, using the same data location. If setup is skipped or non-interactive, registrations are not updated: reinstall with setup enabled before removing the old package. After verifying the new registrations work, uninstall the old package with `npm uninstall -g alba-daybook` using its original npm prefix. Do not remove it first: clients may still point to its files. Library consumers must change their imports to `@vicodev/daybook` before removing the old package.
+Installing the scoped tarball does not replace the separately named `alba-daybook` or `@vicodev/daybook` package. Install the new tarball with setup enabled and select the same clients to update their `daybook` runtime paths, using the same data location. If setup is skipped or non-interactive, registrations are not updated: reinstall with setup enabled before removing the old package. After verifying the new registrations work, uninstall the old package with `npm uninstall -g alba-daybook` or `npm uninstall -g @vicodev/daybook`, as appropriate, using its original npm prefix. Do not remove it first: clients may still point to its files. Library consumers must change their imports to `@vmorenoz/daybook` before removing the old package.
 
 ### Global instruction
 
@@ -54,7 +54,7 @@ npm ci --ignore-scripts
 npm run pack
 ```
 
-The output is `releases/vicodev-daybook-<source-version>.tgz`, using the version in the source checkout. Use `--ignore-scripts` when preparing source code if you do not want setup to run. Without an interactive terminal, setup does not modify configurations automatically.
+The output is `releases/vmorenoz-daybook-<source-version>.tgz`, using the version in the source checkout. Use `--ignore-scripts` when preparing source code if you do not want setup to run. Without an interactive terminal, setup does not modify configurations automatically.
 
 ### Publishing releases
 

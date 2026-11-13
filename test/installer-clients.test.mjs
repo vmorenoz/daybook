@@ -208,7 +208,7 @@ test('migra el bloque de instrucciones anterior sin duplicar identidades ni camb
 test('OpenCode migra una instalación anterior y su referencia sin borrar el archivo de instrucciones', t => {
   const options = sandbox(t);
   const client = getClients(options).find(client => client.id === 'opencode');
-  const runtime = { nodePath: join(options.home, 'node'), serverPath: join(options.home, 'node_modules', '@vicodev', 'daybook', 'dist', 'mcp.js'), dataHome: join(options.home, 'data'), instructions: 'Use daybook.' };
+  const runtime = { nodePath: join(options.home, 'node'), serverPath: join(options.home, 'node_modules', '@vmorenoz', 'daybook', 'dist', 'mcp.js'), dataHome: join(options.home, 'data'), instructions: 'Use daybook.' };
   const previous = join(dirname(client.instructionsPath), 'vimo-cortex.md');
   mkdirSync(dirname(previous), { recursive: true });
   const oldInstructions = '<!-- vimo-cortex:start -->\nOld managed guidance.\n<!-- vimo-cortex:end -->\n';
@@ -224,10 +224,10 @@ test('OpenCode migra una instalación anterior y su referencia sin borrar el arc
   assert.equal(planRegistration(client, runtime).changed, false);
 });
 
-test('updates previous alba-daybook runtime to scoped package while preserving other settings', t => {
+for (const oldPackage of ['alba-daybook', '@vicodev/daybook']) test(`updates previous ${oldPackage} runtime to scoped package while preserving other settings`, t => {
   const options = sandbox(t);
-  const oldPath = join(options.home, 'node_modules', 'alba-daybook', 'dist', 'mcp.js');
-  const runtime = { nodePath: join(options.home, 'node'), serverPath: join(options.home, 'node_modules', '@vicodev', 'daybook', 'dist', 'mcp.js'), dataHome: join(options.home, 'data') };
+  const oldPath = join(options.home, 'node_modules', oldPackage, 'dist', 'mcp.js');
+  const runtime = { nodePath: join(options.home, 'node'), serverPath: join(options.home, 'node_modules', '@vmorenoz', 'daybook', 'dist', 'mcp.js'), dataHome: join(options.home, 'data') };
   for (const client of getClients(options)) {
     mkdirSync(dirname(client.path), { recursive: true });
     const old = client.id === 'opencode'

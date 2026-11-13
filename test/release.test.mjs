@@ -17,7 +17,7 @@ test('release sequence starts at 1.0.0 and requires scoped tarball assets', t =>
   };
   assert.equal(run([], []).stdout.trim(), '1.0.0');
   const tags = [{ name: 'v1.0.0' }];
-  const release = { tag_name: 'v1.0.0', draft: false, prerelease: false, assets: [{ name: 'vicodev-daybook-1.0.0.tgz', state: 'uploaded' }] };
+  const release = { tag_name: 'v1.0.0', draft: false, prerelease: false, assets: [{ name: 'vmorenoz-daybook-1.0.0.tgz', state: 'uploaded' }] };
   assert.equal(run(tags, [release]).stdout.trim(), '1.0.1');
   release.assets[0].name = 'alba-daybook-1.0.0.tgz';
   const incomplete = run(tags, [release]);
