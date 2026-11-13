@@ -1,0 +1,35 @@
+{
+  "name": "alba-daybook",
+  "version": "0.1.0",
+  "author": "Victor Moreno",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vmorenoz/vimo.git",
+    "directory": "daybook"
+  },
+  "private": true,
+  "description": "Persistent project and work context for agents, with local SQLite and MCP",
+  "type": "module",
+  "engines": { "node": ">=24.0.0" },
+  "exports": { ".": "./dist/index.js" },
+  "files": ["dist/", "installer/", "instructions/"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/mcp.js",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "pack": "node scripts/pack.mjs",
+    "postinstall": "node installer/install.mjs"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^8.7.5",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "jsonc-parser": "^3.3.1",
+    "smol-toml": "^1.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
