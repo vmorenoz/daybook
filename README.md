@@ -1,152 +1,72 @@
 # Daybook
 
-Independent local utility: TypeScript, Node.js 24+, built-in SQLite, and MCP over stdio. No dependency on OpenCode or a UI.
+Daybook guarda el contexto de proyectos y tareas para que un agente de IA pueda retomarlos entre sesiones. Funciona localmente con SQLite y se conecta al agente mediante MCP. No necesita una interfaz gráfica ni depende de un cliente concreto.
 
-## Run
+Permite organizar planes, fases y tareas, registrar avances y decisiones, consultar el trabajo pendiente y conservar el historial. Los documentos permanecen en el proyecto; Daybook guarda sus rutas, no su contenido.
 
-### Install globally from a tarball
+## Instalación
 
-With Node.js 24 or newer and npm, download `vmorenoz-daybook-<version>.tgz` from the [GitHub releases](https://github.com/vmorenoz/daybook/releases), then install it from the download directory (replace the example version with the downloaded version):
-
-```sh
-npm install -g ./vmorenoz-daybook-1.0.0.tgz --foreground-scripts
-```
-
-Select **OpenCode, Codex, Antigravity, and Claude Code** using the arrow keys, space to select, and Enter to confirm. Enter with no selection cancels setup. There is no second form or verbose path listing.
-
-Setup registers the `daybook` MCP server and a lightweight global instruction **without creating configuration backups**, preserving unrelated settings. It installs neither a global CLI nor a skill. Each client starts the server automatically; no manual startup is required after reboot. Client trust and permission prompts still apply. Unselected clients are not modified.
-
-If OpenCode has both `opencode.json` and `opencode.jsonc`, setup registers the same server in both, without deleting either file or changing unrelated settings. Antigravity uses `~/.gemini/config/mcp_config.json`.
-
-The tarball contains the compiled server and installer; npm downloads dependencies during installation. No extraction, repository clone, or TypeScript installation is needed. Data remains separate from the installation in `DAYBOOK_HOME`, falling back to `BITACORA_HOME` or `~/.local/share/bitacora` for compatibility.
-
-The package name is `@vmorenoz/daybook` and the MCP server ID is `daybook`. `DAYBOOK_HOME` and `DAYBOOK_INSTALL_*` are the current environment variables; existing `BITACORA_*` variables remain fallback aliases. The existing data directory and `bitacora.sqlite` filename are retained for compatibility. Setup migrates old `bitacora`, `vimo-contex`, `vimo-cortex` and `alba-cortex` registrations only when it recognizes the previous runtime and the same data location; unrelated connections are preserved. No data is moved or copied. `Daybook` is the current library export; old `AlbaCortex`, `VimoCortex` and `VimoContex` aliases remain available for existing consumers.
-
-### Upgrading an older installation
-
-Installing the scoped tarball does not replace the separately named `alba-daybook` or `@vicodev/daybook` package. Install the new tarball with setup enabled and select the same clients to update their `daybook` runtime paths, using the same data location. If setup is skipped or non-interactive, registrations are not updated: reinstall with setup enabled before removing the old package. After verifying the new registrations work, uninstall the old package with `npm uninstall -g alba-daybook` or `npm uninstall -g @vicodev/daybook`, as appropriate, using its original npm prefix. Do not remove it first: clients may still point to its files. Library consumers must change their imports to `@vmorenoz/daybook` before removing the old package.
-
-### Global instruction
-
-The source is [`instructions/global.md`](instructions/global.md), included in the tarball. Setup adds or updates only the block between `<!-- daybook:start -->` and `<!-- daybook:end -->`, without duplication or replacement of user instructions. A single old `vimo-cortex` or `alba-cortex` managed block is upgraded in place; mixed or ambiguous blocks are rejected. For a recognized OpenCode registration, the old instruction-file reference is replaced with the new one without deleting the old file:
-
-| Client | Global file |
-|---|---|
-| OpenCode | `~/.config/opencode/instructions/daybook.md`, added to global `instructions` (respects `XDG_CONFIG_HOME`) |
-| Codex | `~/.codex/AGENTS.md`, or `AGENTS.override.md` if nonempty (respects `CODEX_HOME`) |
-| Antigravity | `~/.gemini/GEMINI.md` |
-| Claude Code | `~/.claude/CLAUDE.md` (respects `CLAUDE_CONFIG_DIR`) |
-
-The instruction explains when to use the MCP, resume project context, and record work without imposing a methodology. It is not a skill and is registered only for selected clients.
-
-Before starting project work, the agent reads `project_id` from the `daybook` block in the project's `AGENTS.md`. An existing legacy `alba-cortex`/`vimo-cortex` block or `proyecto_id` key is accepted as the same binding, not a reason to create a duplicate. If neither exists, the agent offers to create a project or list existing ones for the user to select, waits for their choice, and stores the ID without replacing other instructions. English MCP calls use `project_id`.
-
-The same block stores `work_versioning: track|ignore`. Legacy `versionar|excluir` decisions remain valid. Ask once when tracking `.work/` becomes relevant and reuse the stored answer. This policy applies to `.work/`, not the entire `AGENTS.md` file.
-
-Documents live in each project's `.work/`: `plans/`, `decisions/`, `attachments/`, and `evidence/`. Reuse existing Spanish-named folders rather than moving or duplicating documents. Create only necessary folders and documents; configuration does not belong in `.work/`. SQLite stores absolute-path references, not duplicate document contents.
-
-OpenCode uses an additional instruction source to avoid replacing `AGENTS.md` or disabling its Claude Code compatibility rules.
-
-To build the tarball from source:
-
-```sh
-npm ci --ignore-scripts
-npm run pack
-```
-
-The output is `releases/vmorenoz-daybook-<source-version>.tgz`, using the version in the source checkout. Use `--ignore-scripts` when preparing source code if you do not want setup to run. Without an interactive terminal, setup does not modify configurations automatically.
-
-### Publishing releases
-
-Users with permission to run workflows can dispatch Release, but its jobs run only for `vmorenoz` on `main` (including on reruns). It tests the selected commit, assigns `1.0.0` to the first release and increments the patch thereafter, then checks the built tarball by installing it in an isolated temporary prefix with setup disabled. The tarball package version, asset filename and `v`-prefixed tag agree. The version is injected during the build; the checked-in source version is not changed by the workflow. The tag points to the tested source commit.
-
-The workflow serializes its own runs and does not overwrite tags or assets. If a tag was created but publication failed, or a draft or incomplete release remains, inspect and resolve it manually before retrying; the workflow deliberately stops instead of skipping it. A retry after a successful release creates the next patch release. The repository must allow the workflow token to write contents; no extra secret is required.
-
-For unattended setup, set `DAYBOOK_INSTALL_CLIENTS=opencode,codex,antigravity,claude-code` and `DAYBOOK_INSTALL_CONFIRM=1` when running npm. `DAYBOOK_SKIP_SETUP=1` skips registration. The previous `BITACORA_*` flags are still accepted, with `DAYBOOK_*` values taking precedence. Do not use `sudo`: setup avoids configuring another user's account. Invalid files and direct symbolic links are rejected rather than overwritten.
-
-### Run from source
+Necesitas **Node.js 24 o posterior**, npm y acceso al registro de npm para descargar dependencias. Como todavía no hay una versión publicada, crea el paquete desde el código:
 
 ```sh
 git clone https://github.com/vmorenoz/daybook.git
 cd daybook
 npm ci --ignore-scripts
+npm run pack
+npm install -g ./releases/vmorenoz-daybook-1.0.0.tgz --foreground-scripts
+```
+
+El nombre del archivo contiene la versión del código; si cambia, usa el `.tgz` generado en `releases/`. No ejecutes la instalación con `sudo`.
+
+Durante la instalación, selecciona con las flechas y la barra espaciadora los clientes que quieras conectar: **OpenCode, Codex, Antigravity o Claude Code**. Pulsa Enter para confirmar; sin selección se cancela la configuración. El instalador registra el servidor MCP y una instrucción global para los clientes seleccionados. No instala un comando global ni una skill. Los clientes arrancan el servidor automáticamente y pueden pedir permisos o confirmación.
+
+El instalador conserva los ajustes ajenos, pero **no crea copias de seguridad de los archivos de configuración**. Rechaza archivos inválidos y enlaces simbólicos directos. Si falla o se interrumpe después de escribir algún archivo, no revierte los cambios; informa de los archivos ya modificados.
+
+Estos son los archivos que puede modificar para los clientes seleccionados:
+
+| Cliente | Configuración MCP | Instrucción global |
+|---|---|---|
+| OpenCode | `~/.config/opencode/opencode.json` o `opencode.jsonc`; si existen ambos, modifica ambos | `~/.config/opencode/instructions/daybook.md` |
+| Codex | `~/.codex/config.toml` | `~/.codex/AGENTS.override.md` si no está vacío; en otro caso, `~/.codex/AGENTS.md` |
+| Antigravity | `~/.gemini/config/mcp_config.json` | `~/.gemini/GEMINI.md` |
+| Claude Code | `~/.claude.json` | `~/.claude/CLAUDE.md` |
+
+Si están definidas, `XDG_CONFIG_HOME` sustituye a `~/.config` para OpenCode; `CODEX_HOME` sustituye a `~/.codex` para Codex; y `CLAUDE_CONFIG_DIR` contiene tanto `.claude.json` como `CLAUDE.md` para Claude Code.
+
+Sin terminal interactiva, el instalador no cambia la configuración salvo que se indiquen clientes y confirmación explícitos:
+
+```sh
+DAYBOOK_INSTALL_CLIENTS=opencode,codex DAYBOOK_INSTALL_CONFIRM=1 npm install -g ./releases/vmorenoz-daybook-1.0.0.tgz --foreground-scripts
+```
+
+También se admiten `antigravity` y `claude-code` en la lista. Usa `DAYBOOK_SKIP_SETUP=1` para instalar sin configurar clientes. Si se omite la configuración, habrá que reinstalar con ella habilitada o configurar el cliente manualmente.
+
+### Actualización desde un paquete anterior
+
+El paquete `@vmorenoz/daybook` no sustituye automáticamente a `alba-daybook` ni a `@vicodev/daybook`. Instala el nuevo paquete con la configuración habilitada, selecciona los mismos clientes y usa la misma ubicación de datos. Comprueba que las conexiones funcionan **antes** de desinstalar el paquete anterior: de lo contrario, los clientes podrían seguir apuntando a sus archivos. Si usas la biblioteca directamente, actualiza también sus importaciones.
+
+## Uso
+
+Una vez conectado, pide a tu agente que use Daybook para registrar o retomar el trabajo. La [instrucción global](instructions/global.md) describe cómo vincular un proyecto, guardar avances y consultar el historial. Se añade a los clientes seleccionados sin reemplazar sus instrucciones existentes.
+
+Daybook guarda por defecto su base de datos en `~/.local/share/bitacora`, fuera de los repositorios. Puedes establecer `DAYBOOK_HOME` en una ruta absoluta para cambiar la ubicación; `BITACORA_HOME` sigue siendo una alternativa compatible. El instalador fija esa ruta en la configuración MCP de cada cliente: para cambiarla después, actualiza dicha configuración o reinstala con la nueva ubicación. Esto no mueve los datos existentes. Crear un proyecto no modifica su repositorio. La instrucción del agente propone guardar el identificador en `AGENTS.md` y acordar si los documentos de `.work/` se incluyen en Git.
+
+Completar o cancelar un elemento conserva su historial; se puede reabrir. El borrado es permanente, pero no elimina documentos ni otros archivos. Las copias creadas con `create_backup` incluyen la base de datos y archivos regulares bajo `projects/`, no los documentos externos: haz copias de estos por separado. La copia omite enlaces simbólicos y archivos no regulares; revisa las rutas omitidas y externas en el resultado o en `manifest.json`. Si `projects/` es un enlace simbólico, la copia falla. Durante una copia, pausa las ediciones directas de documentos y comprueba que la operación terminó correctamente y contiene `manifest.json`. Al restaurar, conserva las rutas absolutas de los documentos referenciados o actualízalas explícitamente.
+
+## Desarrollo y configuración manual
+
+Para ejecutar el servidor desde el código:
+
+```sh
+npm ci --ignore-scripts
 npm run build
 npm start
 ```
 
-The process waits for an MCP client; it is not an interactive console. Configure a compatible client with:
+El proceso espera conexiones MCP por entrada y salida estándar; no es una consola interactiva. Para configurarlo manualmente en un cliente compatible, indica la ruta absoluta al ejecutable de Node.js 24 o posterior y el argumento `/ruta/absoluta/a/daybook/dist/mcp.js`. Opcionalmente, configura `DAYBOOK_HOME` con una ruta absoluta. Incorpora también el contenido de [`instructions/global.md`](instructions/global.md) a las instrucciones del cliente, siguiendo su mecanismo de configuración. Esta ejecución no registra el servidor ni las instrucciones automáticamente.
 
-- Executable: absolute path to Node.js 24 or newer.
-- Arguments: `["/absolute/path/to/daybook/dist/mcp.js"]`.
-- Optional `DAYBOOK_HOME`: absolute data directory.
+`npm test` ejecuta las pruebas. Los esquemas MCP describen los parámetros de las herramientas disponibles; la API directa también exporta `Daybook` desde el paquete.
 
-Replace the example paths if you move the module to another location or machine.
+## Licencia
 
-Manual startup does not register the MCP automatically. `npm test` runs short core, MCP, and installer flows without modifying personal configurations.
-
-## Data and contracts
-
-Data defaults to `~/.local/share/bitacora`, separate from repositories. Creating a project does not modify its repository; keep its ID in project metadata. Project-scoped operations require an explicit `project_id`.
-
-- Item types: `plan`, `phase`, `task`. Independent phases, standalone tasks, and tasks directly under a plan are supported.
-- Statuses: `pending`, `planning`, `in_progress`, `blocked`, `completed`, `cancelled`.
-- Active work excludes completed and cancelled items. Closing a parent neither closes nor hides its open children.
-- Mutations return a summary. Details and history are explicit queries; lists are paginated.
-- `expected_version` detects conflicts; `request_id` makes retries idempotent. Reuse both when retrying the same request.
-- Reopening preserves IDs, relations, and history. Completion does not require evidence.
-
-The agent creates, reads, and edits Markdown documents. Daybook records paths, never returns their contents, and does not version external edits. When attaching a Markdown document, include Title, Objective, and Scope. Acceptance criteria, agreements and decisions, implementation approach, dependencies, and evidence are optional.
-
-## MCP capabilities
-
-| Group | Tools |
-|---|---|
-| Projects | `create_project`, `get_project`, `list_projects`, `update_project` |
-| Work | `create_item`, `update_item`, `reopen_item` |
-| Deletion | `delete_project`, `delete_plan`, `delete_phase`, `delete_task` |
-| Tracking | `add_note`, `add_relation`, `remove_relation` |
-| Queries | `get_summary`, `get_details`, `get_active_context`, `list_history`, `list_changes` |
-| Backup | `create_backup` |
-
-MCP schemas describe parameters and limits; responses include `structuredContent` for programmatic consumers and Code Mode. The MCP exposes the 20 English tool names above. Spanish operation names remain supported by the direct `execute()` API, not advertised as duplicate MCP tools.
-
-Minimal flow: `create_project({name})` → `create_item({project_id,type:"task",title})` → `update_item({project_id,id,status:"completed"})`. Then call `list_history` or `reopen_item` using the same ID.
-
-### Permanent deletion
-
-| Operation | Condition |
-|---|---|
-| `delete_project` | Requires `confirm: true` after explicit user confirmation. Cascades through the project's records, relations, annotations, and history in SQLite. |
-| `delete_plan` | Requires a plan with no phases or tasks, including direct and closed tasks. Delete the children first. |
-| `delete_phase` | Requires deleting all its tasks first, including closed tasks. |
-| `delete_task` | Requires `confirm: true` after explicit user confirmation. |
-
-All receive `project_id`; plan, phase, and task deletion also receive `id`. They support `expected_version` and `request_id` like other mutations. Confirmation is a caller assertion: the agent must obtain user consent before sending it.
-
-Deletion differs from completion or cancellation and cannot be undone with `reopen_item`. **No delete operation removes files**: `.work/` documents, other referenced files, and existing backups are untouched. The user may keep or remove them separately whenever they choose. Repositories and `AGENTS.md` are never modified automatically.
-
-## Use without MCP
-
-```js
-import { Daybook } from './dist/index.js';
-
-const daybook = new Daybook({ home: '/absolute/path/to/daybook-data' });
-try {
-  const project = await daybook.execute('create_project', { name: 'My project' });
-  await daybook.execute('create_item', {
-    project_id: project.id, type: 'task', title: 'First task'
-  });
-} finally {
-  daybook.close();
-}
-```
-
-## Compatibility
-
-Existing SQLite data, IDs, stored states, file paths, environment variables, and deletion rules are unchanged. The public English API translates its fields and enum values at the boundary; it does not rewrite user text or stored data. For example, `project_id`, `status: "completed"`, and `confirm: true` map internally to the legacy fields. Existing direct Spanish calls such as `execute('crear_proyecto', {nombre: 'Example'})` retain their original response shape. Reconnect the MCP after updating to discover the English tools.
-
-## Backups
-
-`create_backup` copies the complete SQLite database and documents under managed `projects/`. Its scope is global even when `project_id` is supplied. It excludes external document paths and does not follow symbolic links. Pause direct document edits during backup: SQLite provides a consistent database copy, but cannot make external file edits atomic. Preserve original paths when restoring or update them explicitly.
-
-An interruption may leave an incomplete backup directory and a pending `request_id`. Use another request ID and destination in that case. Only consider a backup complete when its operation succeeded and it contains `manifest.json`.
+[MIT](LICENSE)
