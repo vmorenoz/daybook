@@ -180,8 +180,8 @@ jobs:
           test "$head" = "$GITHUB_SHA" || { echo 'main moved; dispatch again from its current head' >&2; exit 1; }
           # Creating the ref is atomic and fails on collision; never force or overwrite.
           gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/$tag" -f "sha=$GITHUB_SHA" > /dev/null
-          gh release create "$tag" "$VALIDATE_DIR/release-artifact/vmorenoz-daybook-$VERSION.tgz" --verify-tag --draft --title "$tag" --generate-notes
-          gh release edit "$tag" --draft=false
+          gh release create "$tag" "$VALIDATE_DIR/release-artifact/vmorenoz-daybook-$VERSION.tgz" --repo "$GITHUB_REPOSITORY" --verify-tag --draft --title "$tag" --generate-notes
+          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false
       - name: Clean validation files
         if: always()
         env:

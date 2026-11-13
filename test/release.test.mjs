@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, symlinkSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, symlinkSync, existsSync, rmSync, chmodSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -79,4 +79,32 @@ test('workflow cleanup removes only its isolated directories after artifact use'
     assert.notEqual(run(owned).status, 0);
     assert.ok(existsSync(outside));
   }
+});
+
+test('publish commands specify the repository without a Git checkout', t => {
+  const dir = mkdtempSync(join(tmpdir(), 'daybook-publish-test-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const workflow = readFileSync('.github/workflows/release.yml', 'utf8');
+  const step = workflow.split('- name: Create tag and publish release\n')[1];
+  assert.ok(step);
+  const block = step.split('        run: |\n')[1].split(/\n(?=      - name:|  \w+:)/)[0];
+  const script = block.split('\n').map(line => line.replace(/^          /, '')).join('\n');
+  const bin = join(dir, 'bin');
+  mkdirSync(bin);
+  const gh = join(bin, 'gh');
+  writeFileSync(gh, `#!/bin/bash\nprintf '%s\\n' "$*" >> "$GH_CALLS"\nif [[ "$1 $2" == "api repos/$GITHUB_REPOSITORY/git/ref/heads/main" ]]; then echo "$GITHUB_SHA"; fi\n`);
+  chmodSync(gh, 0o755);
+  const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, GH_CALLS: join(dir, 'calls'), GITHUB_REPOSITORY: 'owner/project', GITHUB_SHA: 'abcdef', VERSION: '1.0.1', VALIDATE_DIR: dir };
+  delete env.GIT_DIR;
+  delete env.GIT_WORK_TREE;
+  assert.notEqual(spawnSync('git', ['rev-parse', '--git-dir'], { cwd: dir, env }).status, 0);
+  const result = spawnSync('bash', ['-c', script], { cwd: dir, env, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const calls = readFileSync(env.GH_CALLS, 'utf8').trim().split('\n');
+  assert.deepEqual(calls, [
+    'api repos/owner/project/git/ref/heads/main --jq .object.sha',
+    'api --method POST repos/owner/project/git/refs -f ref=refs/tags/v1.0.1 -f sha=abcdef',
+    `release create v1.0.1 ${dir}/release-artifact/vmorenoz-daybook-1.0.1.tgz --repo owner/project --verify-tag --draft --title v1.0.1 --generate-notes`,
+    'release edit v1.0.1 --repo owner/project --draft=false',
+  ]);
 });
