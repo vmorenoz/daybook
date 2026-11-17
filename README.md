@@ -15,7 +15,7 @@ npm install -g "$PAQUETE" --foreground-scripts
 
 Sustituye la ruta de ejemplo por la ruta y el nombre reales del archivo descargado; la variable `PAQUETE` se usa también en el ejemplo sin terminal interactiva. No ejecutes la instalación con `sudo`.
 
-Durante la instalación, selecciona con las flechas y la barra espaciadora los clientes que quieras conectar: **OpenCode, Codex, Antigravity o Claude Code**. Pulsa Enter para confirmar; sin selección se cancela la configuración. El instalador registra el servidor MCP y una instrucción global para los clientes seleccionados. No instala un comando global ni una skill. Los clientes arrancan el servidor automáticamente y pueden pedir permisos o confirmación.
+Durante la instalación, selecciona con las flechas y la barra espaciadora los clientes que quieras conectar: **OpenCode, Codex, Antigravity o Claude Code**. Pulsa Enter para confirmar; sin selección se cancela la configuración. El instalador registra el servidor MCP y una instrucción global para los clientes seleccionados. El paquete también instala el comando `daybook`, pero no una skill. Los clientes arrancan el servidor automáticamente y pueden pedir permisos o confirmación.
 
 El instalador conserva los ajustes ajenos, pero **no crea copias de seguridad de los archivos de configuración**. Rechaza archivos inválidos y enlaces simbólicos directos. Si falla o se interrumpe después de escribir algún archivo, no revierte los cambios; informa de los archivos ya modificados.
 
@@ -58,6 +58,21 @@ El paquete `@vmorenoz/daybook` no sustituye automáticamente a `alba-daybook` ni
 ## Uso
 
 Una vez conectado, pide a tu agente que use Daybook para registrar o retomar el trabajo. La [instrucción global](instructions/global.md) describe cómo vincular un proyecto, guardar avances y consultar el historial. Se añade a los clientes seleccionados sin reemplazar sus instrucciones existentes.
+
+### Línea de comandos
+
+Sin MCP, `daybook` expone las mismas operaciones y validaciones mediante opciones:
+
+```sh
+daybook --help
+daybook create_project --help
+daybook create_project --name 'Mi proyecto'
+daybook list_projects
+daybook get_active_context --project-id ID-DEL-PROYECTO
+printf '%s' '{"project_id":"ID-DEL-PROYECTO"}' | daybook get_active_context -
+```
+
+La salida es texto resumido; añade `--json` para obtener el resultado completo en JSON para scripts y agentes. Los errores se escriben en stderr con código de salida distinto de cero (también en JSON con `--json`). Los parámetros y las confirmaciones de borrado son los mismos que en MCP; consulta el esquema con `daybook <operación> --help`. La CLI usa `DAYBOOK_HOME` (o `BITACORA_HOME`) de su entorno: establece la misma ruta configurada en el cliente MCP para acceder a los mismos datos. Si no se configura, usa la ubicación predeterminada descrita abajo. `DAYBOOK_SKIP_SETUP=1` permite instalar solo la CLI sin configurar clientes MCP.
 
 Daybook guarda por defecto su base de datos en `~/.local/share/bitacora`, fuera de los repositorios. Puedes establecer `DAYBOOK_HOME` en una ruta absoluta para cambiar la ubicación; `BITACORA_HOME` sigue siendo una alternativa compatible. El instalador fija esa ruta en la configuración MCP de cada cliente: para cambiarla después, actualiza dicha configuración o reinstala con la nueva ubicación. Esto no mueve los datos existentes. Crear un proyecto no modifica su repositorio. La instrucción del agente propone guardar el identificador en `AGENTS.md` y acordar si los documentos de `.work/` se incluyen en Git.
 

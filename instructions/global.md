@@ -1,6 +1,7 @@
 ## Daybook MCP
 
 - Use `daybook` to preserve and resume project work: tasks, plans, progress, agreements, and blockers. Skip trivial questions unless the user requests tracking.
+- If Daybook MCP is unavailable, use the `daybook` CLI for the same operations. Run `daybook --help` and `daybook <operation> --help` to discover commands and parameters; use `--json` when the complete result is needed.
 - Present tool results in concise, plain language, prioritizing useful titles, descriptions, outcomes, and next steps over IDs or relationship keys. Make actions and important consequences clear. Keep identifiers internal; provide technical details and traceability only when explicitly requested.
 - Before starting project work, read `project_id` from the `daybook` block in the project's root `AGENTS.md`. Accept an existing legacy `alba-cortex`/`vimo-cortex` block or `proyecto_id` key as the same binding; never initialize a duplicate because it uses an old name. Reuse this ID as `project_id` in project-scoped MCP calls. Ask the user if stored IDs conflict.
 - If neither key exists, tell the user: "This project has not been initialized in Daybook." Offer to create a new project with `create_project`, or use `list_projects` so they can select an existing one. Do not create or link a project automatically: wait for their choice. Store the chosen ID as `project_id` in that block without replacing other instructions.

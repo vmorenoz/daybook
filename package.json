@@ -12,6 +12,7 @@
   "type": "module",
   "engines": { "node": ">=24.0.0" },
   "exports": { ".": "./dist/index.js" },
+  "bin": { "daybook": "./dist/cli.js" },
   "files": ["dist/", "installer/", "instructions/"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
